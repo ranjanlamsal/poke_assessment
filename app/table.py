@@ -1,5 +1,6 @@
-from .db import connect_to_db
+# app/table.py
 
+from .db import connect_to_db
 
 CREATE_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS pokemons (
@@ -11,9 +12,11 @@ CREATE TABLE IF NOT EXISTS pokemons (
 """
 
 async def create_table():
+    """
+    Creates the "pokemons" table in the database.
+    """
     conn = await connect_to_db()
     try:
         await conn.execute(CREATE_TABLE_SQL)
     finally:
         await conn.close()
-
