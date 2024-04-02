@@ -1,56 +1,10 @@
-from fastapi import FastAPI, Query, HTTPException
-from asyncpg import connect
+from fastapi import FastAPI
 from dotenv import load_dotenv
-import os
-import requests
 from app.db import connect_to_db
-
-load_dotenv()
+from app.fetch_insert import *
+from app.table import create_table
 
 app = FastAPI()
-
-
-CREATE_TABLE_SQL = """
-CREATE TABLE IF NOT EXISTS pokemons (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255),
-    image_url VARCHAR(255),
-    type VARCHAR(255)[]
-);
-"""
-
-async def create_table():
-    conn = await connect_to_db()
-    try:
-        await conn.execute(CREATE_TABLE_SQL)
-    finally:
-        await conn.close()
-
-async def fetch_pokemon_data_from_api():
-    response = requests.get(os.getenv('POKEAPI_URL'))
-    if response.status_code == 200:
-        data = response.json()
-        return data['results']
-    else:
-        return []
-
-async def insert_pokemon_data_into_db():
-    pokemon_data = await fetch_pokemon_data_from_api()
-    conn = await connect_to_db()
-    try:
-        async with conn.transaction():
-            await conn.execute('DELETE FROM pokemons')
-            for pokemon in pokemon_data:
-                name = pokemon['name']
-                pokemon_url = pokemon['url']
-                pokemon_details = requests.get(pokemon_url).json()
-                image_url = pokemon_details['sprites']['front_default']
-                types = [type['type']['name'] for type in pokemon_details['types']]
-                await conn.execute('INSERT INTO pokemons (name, image_url, type) VALUES ($1, $2, $3)',
-                                    name, image_url, types)
-    finally:
-        await conn.close()
-
 
 async def startup_event():
     print("application Starting ")
@@ -58,8 +12,6 @@ async def startup_event():
     
     await connect_to_db()
 
-
-    await fetch_pokemon_data_from_api()
     await insert_pokemon_data_into_db()
     print("application started")
 
